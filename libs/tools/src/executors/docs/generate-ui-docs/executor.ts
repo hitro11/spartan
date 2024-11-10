@@ -151,13 +151,13 @@ function getJsDocDescription(member: ts.ClassElement): string {
 
 // Helper function to add data to nested structure based on file path
 function addToNestedStructure(rootObject, relativePath, className, componentInfo) {
-	const pathSegments = relativePath.split(path.sep);
+  const pathSegments = relativePath.split(path.sep).filter(segment => segment !== 'src' && segment !== 'lib');
 
-	let current = rootObject;
-	for (const segment of pathSegments.slice(0, -1)) {
-		current[segment] = current[segment] || {};
-		current = current[segment];
-	}
+  let current = rootObject;
+  for (const segment of pathSegments.slice(0, -1)) {
+    current[segment] = current[segment] || {};
+    current = current[segment];
+  }
 
-	current[className] = componentInfo;
+  current[className] = componentInfo;
 }
