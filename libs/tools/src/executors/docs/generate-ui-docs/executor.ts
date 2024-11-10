@@ -1,8 +1,9 @@
+import { ExecutorContext } from '@nrwl/devkit';
+import { GenerateUiDocsExecutorSchema } from './schema';
+
 import fs from 'fs';
 import path from 'path';
-import { ExecutorContext, PromiseExecutor } from '@nx/devkit';
 import ts from 'typescript';
-import { GenerateUiDocsExecutorSchema } from './schema';
 
 export default async function runExecutor(options: GenerateUiDocsExecutorSchema, context: ExecutorContext) {
 	const libsDir = path.join(context.root, 'libs/ui');
@@ -13,7 +14,7 @@ export default async function runExecutor(options: GenerateUiDocsExecutorSchema,
 	}
 
 	const libraryFiles = getLibraryFiles(libsDir);
-	const extractedData = await extractInputsOutputs(libraryFiles, context.root);
+	const extractedData = await extractInputsOutputs(libraryFiles, libsDir);
 
 	const outputPath = path.join(outputDir, 'ui-api.json');
 	await fs.promises.writeFile(outputPath, JSON.stringify(extractedData, null, 2));
@@ -47,7 +48,7 @@ function getFiles(dir: string): string[] {
 	return files;
 }
 
-async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
+async function extractInputsOutputs(fileNames: string[], libsDir: string) {
 	const inputsOutputs = {};
 
 	for (const fileName of fileNames) {
@@ -61,28 +62,28 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
 		ts.forEachChild(sourceFile, (node) => {
 			if (ts.isClassDeclaration(node) && node.name) {
 				const className = node.name.text;
-				const relativeFilePath = path.relative(contextRoot, fileName);
+				const relativeFilePath = path.relative(libsDir, fileName);
 				const componentInfo = {
-					file: relativeFilePath,
+					file: `libs/ui/${relativeFilePath}`,
 					inputs: [],
 					outputs: [],
 					selector: null,
 					exportAs: null,
 				};
 
-				// Retrieve decorators safely using ts.canHaveDecorators and ts.getDecorators
+				// Retrieve decorators
 				const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
-				decorators?.forEach((decorator, index) => {
+				decorators?.forEach((decorator) => {
 					if (ts.isCallExpression(decorator.expression)) {
 						const decoratorName = decorator.expression.expression.getText();
 						if (decoratorName === 'Component' || decoratorName === 'Directive') {
 							const decoratorArg = decorator.expression.arguments[0];
 							if (decoratorArg && ts.isObjectLiteralExpression(decoratorArg)) {
-								// Extract `selector` and `exportAs` properties from decorator
 								decoratorArg.properties.forEach((prop) => {
 									if (ts.isPropertyAssignment(prop)) {
 										const propName = prop.name.getText();
 										const propValue = prop.initializer.getText().replace(/['"]/g, '');
+
 										if (propName === 'selector') {
 											componentInfo.selector = propValue;
 										} else if (propName === 'exportAs') {
@@ -96,17 +97,14 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
 				});
 
 				node.members.forEach((member) => {
-					// Extract JSDoc description if available
 					const description = getJsDocDescription(member);
 
 					if (ts.isPropertyDeclaration(member) && member.initializer) {
-						// Check if the initializer is a call expression
 						const initializer = member.initializer;
 
 						if (ts.isCallExpression(initializer)) {
 							const expressionText = initializer.expression.getText();
 
-							// Check for new signal-based `input` and `output`
 							if (expressionText === 'input') {
 								const typeArgument = initializer.typeArguments?.[0]?.getText() || 'any';
 								componentInfo.inputs.push({
@@ -126,14 +124,13 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
 					}
 				});
 
-				// Only add the class if it has inputs or outputs
 				if (
 					componentInfo.inputs.length > 0 ||
 					componentInfo.outputs.length > 0 ||
 					componentInfo.selector ||
 					componentInfo.exportAs
 				) {
-					inputsOutputs[className] = componentInfo;
+					addToNestedStructure(inputsOutputs, relativeFilePath, className, componentInfo);
 				}
 			}
 		});
@@ -150,4 +147,17 @@ function getJsDocDescription(member: ts.ClassElement): string {
 		return typeof comment === 'string' ? comment.trim() : '';
 	}
 	return '';
+}
+
+// Helper function to add data to nested structure based on file path
+function addToNestedStructure(rootObject, relativePath, className, componentInfo) {
+	const pathSegments = relativePath.split(path.sep);
+
+	let current = rootObject;
+	for (const segment of pathSegments.slice(0, -1)) {
+		current[segment] = current[segment] || {};
+		current = current[segment];
+	}
+
+	current[className] = componentInfo;
 }
