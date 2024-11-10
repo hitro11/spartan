@@ -1,10 +1,8 @@
-import { PromiseExecutor } from '@nx/devkit';
-import { GenerateUiDocsExecutorSchema } from './schema';
-
-import { ExecutorContext } from '@nrwl/devkit';
 import ts from 'typescript';
 import fs from 'fs';
 import path from 'path';
+import { GenerateUiDocsExecutorSchema } from './schema';
+import { ExecutorContext, PromiseExecutor } from '@nx/devkit';
 
 export default async function runExecutor(
   options: GenerateUiDocsExecutorSchema,
@@ -20,7 +18,7 @@ export default async function runExecutor(
   const libraryFiles = getLibraryFiles(libsDir);
   const extractedData = await extractInputsOutputs(libraryFiles, context.root);
 
-  const outputPath = path.join(outputDir, 'inferred-inputs-outputs.json');
+  const outputPath = path.join(outputDir, 'ui-api.json');
   await fs.promises.writeFile(outputPath, JSON.stringify(extractedData, null, 2));
 
   console.log(`Inference completed. Output saved to ${outputPath}`);
@@ -66,15 +64,42 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
     ts.forEachChild(sourceFile, (node) => {
       if (ts.isClassDeclaration(node) && node.name) {
         const className = node.name.text;
-		const relativeFilePath = path.relative(contextRoot, fileName);
+        const relativeFilePath = path.relative(contextRoot, fileName);
         const componentInfo = {
           file: relativeFilePath,
           inputs: [],
           outputs: [],
+          selector: null,
+          exportAs: null,
         };
 
+		// Retrieve decorators safely using ts.canHaveDecorators and ts.getDecorators
+        const decorators = ts.canHaveDecorators(node) ? ts.getDecorators(node) : undefined;
+        decorators?.forEach((decorator, index) => {
+          if (ts.isCallExpression(decorator.expression)) {
+            const decoratorName = decorator.expression.expression.getText();
+            if (decoratorName === 'Component' || decoratorName === 'Directive') {
+              const decoratorArg = decorator.expression.arguments[0];
+              if (decoratorArg && ts.isObjectLiteralExpression(decoratorArg)) {
+                // Extract `selector` and `exportAs` properties from decorator
+                decoratorArg.properties.forEach((prop) => {
+                  if (ts.isPropertyAssignment(prop)) {
+                    const propName = prop.name.getText();
+                    const propValue = prop.initializer.getText().replace(/['"]/g, '');
+                    if (propName === 'selector') {
+                      componentInfo.selector = propValue;
+                    } else if (propName === 'exportAs') {
+                      componentInfo.exportAs = propValue;
+                    }
+                  }
+                });
+              }
+            }
+          }
+        });
+
         node.members.forEach((member) => {
-		  // Extract JSDoc description if available
+          // Extract JSDoc description if available
           const description = getJsDocDescription(member);
 
           if (ts.isPropertyDeclaration(member) && member.initializer) {
@@ -90,14 +115,14 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
                 componentInfo.inputs.push({
                   name: member.name.getText(),
                   type: typeArgument,
-				  description,
+                  description,
                 });
               } else if (expressionText === 'output') {
                 const typeArgument = initializer.typeArguments?.[0]?.getText() || 'EventEmitter<any>';
                 componentInfo.outputs.push({
                   name: member.name.getText(),
                   type: typeArgument,
-				  description,
+                  description,
                 });
               }
             }
@@ -105,7 +130,7 @@ async function extractInputsOutputs(fileNames: string[], contextRoot: string) {
         });
 
         // Only add the class if it has inputs or outputs
-        if (componentInfo.inputs.length > 0 || componentInfo.outputs.length > 0) {
+        if (componentInfo.inputs.length > 0 || componentInfo.outputs.length > 0 || componentInfo.selector || componentInfo.exportAs) {
           inputsOutputs[className] = componentInfo;
         }
       }
