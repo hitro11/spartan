@@ -1,7 +1,7 @@
 import { ExecutorContext } from '@nx/devkit';
 
-import { GenerateUiDocsExecutorSchema } from './schema';
 import executor from './executor';
+import { GenerateUiDocsExecutorSchema } from './schema';
 
 const options: GenerateUiDocsExecutorSchema = {};
 const context: ExecutorContext = {
