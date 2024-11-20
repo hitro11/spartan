@@ -4,7 +4,7 @@ import { noteRouter } from './notes';
 
 export const appRouter = router({
 	note: noteRouter,
-	docs:docsRouter
+	docs: docsRouter,
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

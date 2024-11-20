@@ -87,11 +87,11 @@ export class UIApiDocsComponent {
 	public docType = input<'brain' | 'helm'>('brain');
 
 	protected uiDocs = computed(() => this._uiDocsService.getPrimitiveDoc(this.primitive()) ?? null);
-    protected uiPrimitiveItems = computed(() => this.uiDocs()?.[this.docType()] ?? {});
+	protected uiPrimitiveItems = computed(() => this.uiDocs()?.[this.docType()] ?? {});
 	protected uiPrimitiveEntries = computed(() => Object.keys(this.uiPrimitiveItems() ?? []));
 
-    // FIXME: Typing was getting weird
-    forceIterator(item:any):any[] {
-        return item && Array.isArray(item)? item :[]
-    }
+	// FIXME: Typing was getting weird
+	forceIterator(item: any): any[] {
+		return item && Array.isArray(item) ? item : [];
+	}
 }
