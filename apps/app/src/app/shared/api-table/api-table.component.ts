@@ -37,5 +37,5 @@ const content =
 	`,
 })
 export class APITableComponent {
-	api = input<PropDetails[]>([]);
+	protected readonly api = input<PropDetails[]>([]);
 }
