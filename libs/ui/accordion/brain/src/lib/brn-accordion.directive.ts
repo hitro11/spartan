@@ -1,5 +1,4 @@
 import { FocusKeyManager, FocusMonitor } from '@angular/cdk/a11y';
-import { coerceBooleanProperty } from '@angular/cdk/coercion';
 import {
 	type AfterContentInit,
 	Directive,

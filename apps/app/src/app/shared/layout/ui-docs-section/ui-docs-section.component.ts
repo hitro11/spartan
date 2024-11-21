@@ -80,7 +80,7 @@ import { UIDocsService } from '../../../core/services/ui-docs.service';
     `,
 })
 export class UIApiDocsComponent {
-	private _uiDocsService = inject(UIDocsService);
+	private readonly _uiDocsService = inject(UIDocsService);
 	private readonly route = inject(ActivatedRoute);
 	protected primitive = toSignal(this.route.data.pipe(map((data) => data?.['api'])));
 

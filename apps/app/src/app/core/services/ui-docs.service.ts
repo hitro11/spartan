@@ -7,8 +7,8 @@ import { type NestedComponents } from '../models/ui-docs.model';
 
 @Injectable()
 export class UIDocsService {
-	private _trpc = injectTRPCClient();
-	private _uiDocs = toSignal(this._trpc.docs.list.query());
+	private readonly _trpc = injectTRPCClient();
+	private readonly _uiDocs = toSignal(this._trpc.docs.list.query());
 
 	public triggerRefresh$ = new Subject<void>();
 	public uiDocs$ = this.triggerRefresh$.pipe(
