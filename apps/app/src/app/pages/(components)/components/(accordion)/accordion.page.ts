@@ -1,5 +1,5 @@
 import type { RouteMeta } from '@analogjs/router';
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { hlmCode, hlmH4 } from '@spartan-ng/ui-typography-helm';
 import { CodePreviewDirective } from '../../../../shared/code/code-preview.directive';
 import { CodeComponent } from '../../../../shared/code/code.component';
@@ -73,10 +73,10 @@ export const routeMeta: RouteMeta = {
 			</div>
 
 			<spartan-section-sub-heading id="brn-api">Brain API</spartan-section-sub-heading>
-			<spartan-ui-api-docs docType="brain"/>
+			<spartan-ui-api-docs docType="brain" />
 
 			<spartan-section-sub-heading id="brn-api">Helm API</spartan-section-sub-heading>
-			<spartan-ui-api-docs docType="helm"/>
+			<spartan-ui-api-docs docType="helm" />
 
 			<spartan-section-sub-heading id="examples">Examples</spartan-section-sub-heading>
 			<h3 id="examples__multiple_opened" class="${hlmH4} mb-2 mt-6">Multiple and Opened</h3>
